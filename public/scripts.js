@@ -22,21 +22,4 @@ socket.on("nsList", (nsData) => {
       console.log("the click is happening");
     });
   });
-  const nsSocket = io("http://localhost:9000/wiki");
-  nsSocket.on("nsRoomLoad", (nsRooms) => {
-    let roomList = document.querySelector(".room-list");
-    roomList.innerHTML = "";
-    nsRooms.forEach((room) => {
-      let glpyh;
-      if (room.privateRoom) glpyh = "lock";
-      else glpyh = "globe";
-      return (roomList.innerHTML += ` <li class='room'><span class="glyphicon glyphicon-${glpyh}"></span>${room.roomTitle}</li>`);
-    });
-    let roomNodes = document.getElementsByClassName("room");
-    Array.from(roomNodes).forEach((elem) => {
-      elem.addEventListener("click", (e) => {
-        console.log("clicked on ", e.target.innerText);
-      });
-    });
-  });
 });
