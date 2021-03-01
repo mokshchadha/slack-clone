@@ -1,5 +1,5 @@
 function joinNs(endpoint) {
-  const nsSocket = io("http://localhost:9000/wiki");
+  const nsSocket = io(`http://localhost:9000/${endpoint}`);
   nsSocket.on("nsRoomLoad", (nsRooms) => {
     let roomList = document.querySelector(".room-list");
     roomList.innerHTML = "";

@@ -22,4 +22,5 @@ socket.on("nsList", (nsData) => {
       console.log("the click is happening");
     });
   });
+  joinNs("wiki");
 });
