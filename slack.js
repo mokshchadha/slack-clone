@@ -19,5 +19,17 @@ namespaces.map((e) => {
   io.of(e.endpoint).on("connection", (nsSocket) => {
     console.log(`connected the ${nsSocket.id} with ${e.endpoint}`);
     nsSocket.emit("nsRoomLoad", namespaces[0].rooms);
+    nsSocket.on("joinRoom", (roomToJoin, numberOfUserCallback) => {
+      nsSocket.join(roomToJoin);
+      io.of("/wiki")
+        .in(roomToJoin)
+        .clients((err, clients) => {
+          console.log(clients);
+          numberOfUserCallback(clients.length);
+        });
+    });
+    nsSocket.on("newMessageToServer", (msg) => {
+      console.log(nsSocket.rooms);
+    });
   });
 });
