@@ -1,23 +1,63 @@
 const express = require("express");
 const app = express();
 const socketio = require("socket.io");
+
+let namespaces = require("./data/namespaces");
 const expressServer = app.listen(9000);
 app.use(express.static(__dirname + "/public"));
 
 const io = socketio(expressServer);
 
-let namespaces = require("./data/namespaces");
-
 io.on("connection", (socket) => {
-  //build an array to send back with img to the end point of each namespace
-  let nsData = namespaces.map((ns) => ({ img: ns.img, endpoint: ns.endpoint }));
-  //send the ns data to back to the client
+  let nsData = namespaces.map((ns) => {
+    return {
+      img: ns.img,
+      endpoint: ns.endpoint,
+    };
+  });
   socket.emit("nsList", nsData);
 });
 
-namespaces.map((e) => {
-  io.of(e.endpoint).on("connection", (nsSocket) => {
-    console.log(`connected the ${nsSocket.id} with ${e.endpoint}`);
-    nsSocket.emit("nsRoomLoad", namespaces[0].rooms);
+namespaces.forEach((namespace) => {
+  io.of(namespace.endpoint).on("connection", (nsSocket) => {
+    console.log(nsSocket.handshake);
+    const username = nsSocket.handshake.query.username;
+    nsSocket.emit("nsRoomLoad", namespace.rooms);
+    nsSocket.on("joinRoom", (roomToJoin, numberOfUsersCallback) => {
+      console.log(nsSocket.rooms);
+      const roomToLeave = Object.keys(nsSocket.rooms)[1];
+      nsSocket.leave(roomToLeave);
+      updateUsersInRoom(namespace, roomToLeave);
+      nsSocket.join(roomToJoin);
+      const nsRoom = namespace.rooms.find((room) => {
+        return room.roomTitle === roomToJoin;
+      });
+      nsSocket.emit("historyCatchUp", nsRoom.history);
+      updateUsersInRoom(namespace, roomToJoin);
+    });
+    nsSocket.on("newMessageToServer", (msg) => {
+      const fullMsg = {
+        text: msg.text,
+        time: Date.now(),
+        username: username,
+        avatar: "https://via.placeholder.com/30",
+      };
+      const roomTitle = Object.keys(nsSocket.rooms)[1];
+      const nsRoom = namespace.rooms.find((room) => {
+        return room.roomTitle === roomTitle;
+      });
+      nsRoom.addMessage(fullMsg);
+      io.of(namespace.endpoint).to(roomTitle).emit("messageToClients", fullMsg);
+    });
   });
 });
+
+function updateUsersInRoom(namespace, roomToJoin) {
+  io.of(namespace.endpoint)
+    .in(roomToJoin)
+    .clients((error, clients) => {
+      io.of(namespace.endpoint)
+        .in(roomToJoin)
+        .emit("updateMembers", clients.length);
+    });
+}
